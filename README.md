@@ -14,7 +14,7 @@ This repository provides the source code, demonstration datasets, and web interf
 The complete datasets supporting this study, including raw MS/MS files, processed results, and figure source data required for reproducing the published analyses, are publicly available through Zenodo:
 
 **https://doi.org/10.5281/zenodo.20700190**
-<img width="6624" height="233" alt="image" src="https://github.com/user-attachments/assets/51363fad-0760-4aea-aca9-d9fd78030b6e" />
+
 
 
 
@@ -38,7 +38,7 @@ The `input/` folder contains representative datasets used to demonstrate the SLE
 These datasets can be used together with the scripts provided in this repository to reproduce the construction of fragment-feature matrices and subsequent NMF analyses.
 
 The `demo/` folder provides a pre-generated optimized fragment-feature matrix for rapid testing of the SLECS workflow.
-<img width="1865" height="293" alt="image" src="https://github.com/user-attachments/assets/305cc20b-59a8-4d65-9db7-4e2607f671e4" />
+
 
 
 
