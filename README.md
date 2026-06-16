@@ -1,4 +1,4 @@
-# SLECS Explorer-demo
+# SLECS Explorer
 
 
 ![描述文字](images/demo.png)
