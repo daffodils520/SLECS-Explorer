@@ -4,7 +4,6 @@
 ![描述文字](images/demo.png)
 
 
-SLECS Explorer
 ===================
 
 Description
