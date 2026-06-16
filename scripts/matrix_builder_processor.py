@@ -15,7 +15,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 
-# ---------------- 工具 ----------------
+# ---------------- Utilities ----------------
 
 def _ensure_dir(p):
     os.makedirs(p, exist_ok=True)
@@ -27,11 +27,11 @@ def _write_empty_csv(path, columns):
     return path
 
 
-# ---------------- Step①：构建完整碎片矩阵 ----------------
+# ---------------- Step ①: Build full fragment matrix ----------------
 
 def extract_spectra_from_mgf(mgf_file_path):
     """
-    逐行解析 .mgf/.mgf.gz，提取 (FEATURE_ID, PEPMASS, [(mz, intensity), ...])
+    Parse .mgf/.mgf.gz line by line, extract (FEATURE_ID, PEPMASS, [(mz, intensity), ...])
     """
     spectra_data = []
     cur_id, cur_pm, cur_ints = None, None, []
@@ -66,8 +66,7 @@ def extract_spectra_from_mgf(mgf_file_path):
 
 def build_fragment_matrix(spectra_data, output_csv):
     """
-    列 = m/z（字符串），行 = FEATURE_ID；值 = intensity
-    与 jupyter 版本保持一致：to_csv() 默认 header+index，供 Step② 以 header=None 读取。
+    Columns = m/z (string), rows = FEATURE_ID; values = intensity
     """
     all_mz = sorted({mz for _, _, ints in spectra_data for mz, _ in ints})
     df = pd.DataFrame(0, index=[fid for fid, _, _ in spectra_data],
@@ -81,7 +80,7 @@ def build_fragment_matrix(spectra_data, output_csv):
     return output_csv
 
 
-# ---------------- Step②：分箱 ----------------
+# ---------------- Step ②: Binning ----------------
 
 def bin_mz_values(input_csv, output_csv, bin_size=0.01):
     data = pd.read_csv(input_csv, header=None)
@@ -116,7 +115,7 @@ def bin_mz_values(input_csv, output_csv, bin_size=0.01):
     return output_csv
 
 
-# ---------------- Step③：CHO/CHON 化学式注释 ----------------
+# ---------------- Step ③: CHO/CHON annotation ----------------
 
 def annotate_formulas(binned_csv, output_csv, tolerance=0.02):
     data = pd.read_csv(binned_csv, header=None)
@@ -171,7 +170,7 @@ def annotate_formulas(binned_csv, output_csv, tolerance=0.02):
     return output_csv
 
 
-# ---------------- Step④：筛选 CHO 并保留原始矩阵列 ----------------
+# ---------------- Step ④: Filter CHO ----------------
 
 def filter_CHO(binned_csv, formula_csv, output_csv):
     def is_CHO(s):
@@ -187,13 +186,12 @@ def filter_CHO(binned_csv, formula_csv, output_csv):
     cols = [orig.columns[0]] + match_cols
     filtered = orig[cols]
 
-    # 首列列名置空，index 不输出
     filtered.columns.values[0] = ""
     filtered.to_csv(output_csv, index=False)
     return output_csv
 
 
-# ---------------- Step⑤：结构性质量差匹配与转化关系 ----------------
+# ---------------- Step ⑤: Structural transformation matching ----------------
 
 def match_structural_transformations(cho_matrix_csv, output_csv):
     data = pd.read_csv(cho_matrix_csv, index_col=0)
@@ -216,7 +214,7 @@ def match_structural_transformations(cho_matrix_csv, output_csv):
         ("[M+H-H2O]+", "[M+H-2H2O]+"): 18.010565
     }
 
-    def within(v, t, tol=0.01):  # 按脚本 0.01
+    def within(v, t, tol=0.01):
         return abs(v - t) <= tol
 
     results, used = [], set()
@@ -225,7 +223,6 @@ def match_structural_transformations(cho_matrix_csv, output_csv):
         if mz1 in used:
             continue
 
-        # 估计中性母体质量（取最大）
         est_M = None
         for _, off in adduct_masses.items():
             cand = round(mz1 - off, 5)
@@ -253,12 +250,12 @@ def match_structural_transformations(cho_matrix_csv, output_csv):
     return output_csv
 
 
-# ---------------- Step⑥：根据结构转化匹配过滤矩阵 ----------------
+# ---------------- Step ⑥: Filter matrix by transformation ----------------
 
 def filter_by_transformations(cho_matrix_csv, transform_csv, output_csv):
     data = pd.read_csv(cho_matrix_csv, index_col=0)
     if not os.path.exists(transform_csv) or os.path.getsize(transform_csv) == 0:
-        data.iloc[:, :0].to_csv(output_csv)  # 只保留行索引，无列
+        data.iloc[:, :0].to_csv(output_csv)
         return output_csv
 
     trans = pd.read_csv(transform_csv)
@@ -274,7 +271,7 @@ def filter_by_transformations(cho_matrix_csv, transform_csv, output_csv):
     return output_csv
 
 
-# ---------------- Step⑦a：频率统计 + 20Da 分箱高分位筛选 ----------------
+# ---------------- Step ⑦a: Frequency statistics ----------------
 
 def frequency_correct_and_bin_filter(step6_matrix_csv,
                                      freq_out_csv,
@@ -308,7 +305,7 @@ def frequency_correct_and_bin_filter(step6_matrix_csv,
     return freq_out_csv, freq_filtered_out_csv
 
 
-# ---------------- Step⑦b：样条平滑并找谷点 ----------------
+# ---------------- Step ⑦b: spline smoothing ----------------
 
 def smooth_and_find_valleys(freq_filtered_csv, valleys_csv, plot_png, spline_s=0.05):
     kept = pd.read_csv(freq_filtered_csv)
@@ -337,6 +334,7 @@ def smooth_and_find_valleys(freq_filtered_csv, valleys_csv, plot_png, spline_s=0
     xs = np.linspace(x.min(), x.max(), 2000)
     ys = spline(xs)
     valley_idx = argrelextrema(ys, np.less)[0]
+
     valleys = pd.DataFrame({"mz": xs[valley_idx], "Frequency_Rate": ys[valley_idx]})
     valleys.to_csv(valleys_csv, index=False)
 
@@ -355,7 +353,7 @@ def smooth_and_find_valleys(freq_filtered_csv, valleys_csv, plot_png, spline_s=0
     return valleys_csv, plot_png
 
 
-# ---------------- Step⑦c：固定阈值按 m/z 分段做最终筛选 ----------------
+# ---------------- Step ⑦c: final filtering ----------------
 
 def final_threshold_filter(step6_matrix_csv, freq_corrected_csv,
                            output_csv, mz_split_threshold=300,
@@ -371,7 +369,7 @@ def final_threshold_filter(step6_matrix_csv, freq_corrected_csv,
     sel = freq_df[
         ((freq_df["mz"] < mz_split_threshold) & (freq_df["Frequency_Rate"] > low_freq_rate)) |
         ((freq_df["mz"] >= mz_split_threshold) & (freq_df["Frequency_Rate"] > high_freq_rate))
-        ]["mz"].tolist()
+    ]["mz"].tolist()
 
     kept = inten_df.loc[:, inten_df.columns.isin(sel)]
     kept = kept.sort_index(axis=1)
@@ -379,14 +377,12 @@ def final_threshold_filter(step6_matrix_csv, freq_corrected_csv,
     return output_csv
 
 
-# ---------------- 便捷封装：给 app 的两个独立小功能 ----------------
+# ---------------- Wrappers ----------------
 
 def run_freq_valley_analysis(intensity_matrix_csv, output_dir,
                              bin_size_da=20, top_quantile=0.999, spline_s=0.05):
-    """
-    功能①：给定 Step⑥ 强度矩阵 -> 频率表/分箱高分位/谷点CSV+PNG
-    """
     _ensure_dir(output_dir)
+
     freq_csv = os.path.join(output_dir, "fv_frequency_corrected.csv")
     kept_csv = os.path.join(output_dir, "fv_frequency_kept.csv")
     valleys_csv = os.path.join(output_dir, "fv_mz_valleys.csv")
@@ -406,14 +402,12 @@ def run_freq_valley_analysis(intensity_matrix_csv, output_dir,
 
 def run_segmented_frequency_filter(intensity_matrix_csv, output_dir,
                                    mz_split_threshold=300, high_freq_rate=0.01, low_freq_rate=0.1):
-    """
-    功能②：给定 Step⑥ 强度矩阵 + 三阈值 -> 频率表 + 最终过滤矩阵
-    """
     _ensure_dir(output_dir)
+
     freq_csv = os.path.join(output_dir, "seg_frequency_corrected.csv")
-    _ = os.path.join(output_dir, "seg_tmp_kept.csv")  # 产物不强制使用，但函数需要
-    # 先得到频率表（同时会生成一个 kept 表，不用也没关系）
-    frequency_correct_and_bin_filter(intensity_matrix_csv, freq_csv, _,
+    tmp = os.path.join(output_dir, "seg_tmp.csv")
+
+    frequency_correct_and_bin_filter(intensity_matrix_csv, freq_csv, tmp,
                                      bin_size_da=20, top_quantile=0.999)
 
     final_csv = os.path.join(output_dir, "seg_final_filtered_matrix.csv")
@@ -428,55 +422,45 @@ def run_segmented_frequency_filter(intensity_matrix_csv, output_dir,
     }
 
 
-# ---------------- 总流程（供 app 调用） ----------------
+# ---------------- Main pipeline ----------------
 
 def process_matrix_builder(mgf_path, output_dir,
                            bin_size=0.01, tolerance=0.02,
                            mz_split_threshold=300,
                            high_freq_rate=0.01, low_freq_rate=0.1,
                            bin20_quantile=0.999, spline_s=0.05):
-    """
-    将“修改后的 jupyter 流程”完整封装；返回所有产物的绝对路径字典。
-    """
+
     _ensure_dir(output_dir)
 
-    # Step①
     spectra = extract_spectra_from_mgf(mgf_path)
     step1_csv = os.path.join(output_dir, "step1_fragment_matrix.csv")
     build_fragment_matrix(spectra, step1_csv)
 
-    # Step②
     step2_csv = os.path.join(output_dir, "step2_binned_fragment_matrix.csv")
     bin_mz_values(step1_csv, step2_csv, bin_size=bin_size)
 
-    # Step③
     step3_csv = os.path.join(output_dir, "step3_formula_annotation.csv")
     annotate_formulas(step2_csv, step3_csv, tolerance=tolerance)
 
-    # Step④
     step4_csv = os.path.join(output_dir, "step4_CHO_filtered_matrix.csv")
     filter_CHO(step2_csv, step3_csv, step4_csv)
 
-    # Step⑤
     step5_csv = os.path.join(output_dir, "step5_matched_transformations.csv")
     match_structural_transformations(step4_csv, step5_csv)
 
-    # Step⑥
     step6_csv = os.path.join(output_dir, "step6_transformation_filtered_matrix.csv")
     filter_by_transformations(step4_csv, step5_csv, step6_csv)
 
-    # Step⑦a
     step7_freq_csv = os.path.join(output_dir, "step6_transformation_frag_frequency_corrected.csv")
     step7_freq_kept_csv = os.path.join(output_dir, "step6_transformation_frag_frequency_filtered.csv")
+
     frequency_correct_and_bin_filter(step6_csv, step7_freq_csv, step7_freq_kept_csv,
                                      bin_size_da=20, top_quantile=bin20_quantile)
 
-    # Step⑦b
     valleys_csv = os.path.join(output_dir, "step6_transformation_mz_valleys.csv")
     valleys_png = os.path.join(output_dir, "frag_frequency_valleys_plot.png")
     smooth_and_find_valleys(step7_freq_kept_csv, valleys_csv, valleys_png, spline_s=spline_s)
 
-    # Step⑦c
     final_csv = os.path.join(output_dir, "final_filtered_matrix.csv")
     final_threshold_filter(step6_csv, step7_freq_csv, final_csv,
                            mz_split_threshold=mz_split_threshold,
@@ -490,7 +474,7 @@ def process_matrix_builder(mgf_path, output_dir,
         "step4_CHO_filtered_matrix_csv": step4_csv,
         "step5_matched_transformations_csv": step5_csv,
         "step6_transformation_filtered_matrix_csv": step6_csv,
-        "step6_transformation_frag_frequency_corrected_csv": step7_freq_csv,
-        "step6_transformation_frag_frequency_filtered_csv": step7_freq_kept_csv,
-        "step6_transformation_mz_valleys_csv": valleys_csv,
+        "step6_frequency_csv": step7_freq_csv,
+        "step6_frequency_filtered_csv": step7_freq_kept_csv,
+        "step6_valleys_csv": valleys_csv
     }
