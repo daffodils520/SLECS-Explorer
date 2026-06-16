@@ -1,4 +1,4 @@
-# app.py —— 完整后端（含 /nmf 页面路由 + 所有接口）
+# app.py 
 # -*- coding: utf-8 -*-
 import os
 import json
@@ -13,20 +13,20 @@ from flask import Flask, render_template, request, jsonify, send_from_directory,
 from jinja2 import TemplateNotFound
 from mass_spectrometry_processor import process_mass_spectrometry_data
 
-# 画图
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-# 频率谷点
+
 from scipy.interpolate import UnivariateSpline
 from scipy.signal import argrelextrema
 
-# NMF / 聚类
+
 from sklearn.decomposition import NMF
 from scipy.cluster.hierarchy import linkage, leaves_list
 
-# UMAP 与网络
+
 try:
     import umap  # umap-learn
 except Exception:
@@ -53,14 +53,14 @@ except Exception:
 warnings.filterwarnings("ignore")
 
 # ---------------------------
-# Flask 基础
+# Flask
 # ---------------------------
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.config.setdefault("UPLOAD_FOLDER", "uploads")
 app.config.setdefault("OUTPUT_FOLDER", "output")
 app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024 * 1024  # 1GB
 
-GLOBAL_VIS = {"processor": None}  # Dash 图形所用的全局处理器
+GLOBAL_VIS = {"processor": None}  # Dash 
 
 def ensure_dir(path: str) -> str:
     os.makedirs(path, exist_ok=True)
@@ -69,9 +69,7 @@ def ensure_dir(path: str) -> str:
 ensure_dir(app.config["UPLOAD_FOLDER"])
 ensure_dir(app.config["OUTPUT_FOLDER"])
 
-# ---------------------------
-# 工具：安全数值/ID
-# ---------------------------
+
 def _safe_float(x, default=np.nan):
     try:
         return float(x)
@@ -91,16 +89,9 @@ def _stamp(prefix: str, suffix: str) -> str:
 def _dl(path: str) -> str:
     return f"/download/{os.path.basename(path)}"
 
-# ---------------------------
-# 稳健读取：强度矩阵 / 频率表 自动识别
-# ---------------------------
+
 def read_intensity_or_frequency(csv_path: str):
-    """
-    返回 (mode, df)
-    - mode == "intensity"：df 行为样本，列为 m/z（float），值为强度
-    - mode == "frequency"：df 包含列 ["mz","Frequency_Count","Frequency_Rate"]
-    """
-    # 先尝试频率表
+
     try:
         tmp = pd.read_csv(csv_path)
         lower = {c.lower(): c for c in tmp.columns}
@@ -121,20 +112,18 @@ def read_intensity_or_frequency(csv_path: str):
     except Exception:
         pass
 
-    # 尝试强度矩阵（第一列为索引/ID）
+
     inten = pd.read_csv(csv_path, index_col=0)
-    # 列名应为 m/z，可转 float
+
     try:
         inten.columns = inten.columns.astype(float)
     except Exception as e:
-        raise ValueError("该 CSV 不是频率表，也不是有效的强度矩阵（列名无法解析为 m/z 浮点数）")
-    # 统一转数值
+        raise ValueError("This CSV is not a frequency table or a valid intensity matrix (the column names cannot be parsed as m/z floating-point values).")
+
     inten = inten.apply(pd.to_numeric, errors="coerce").fillna(0.0)
     return "intensity", inten
 
-# -------------------------------------------------------------
-# 类：NMF 评估（重构误差 & 解释方差）
-# -------------------------------------------------------------
+
 class NMFEvaluator:
     def __init__(self, data_file, output_dir):
         self.data_file = data_file
@@ -191,9 +180,7 @@ class NMFEvaluator:
         plt.savefig(variance_plot_path, dpi=200, bbox_inches="tight")
         plt.close()
 
-# -------------------------------------------------------------
-# 类：UMAP 可视化处理（使用 W 矩阵）
-# -------------------------------------------------------------
+
 class NMFProcessor:
     def __init__(self, w_matrix_file, metadata_file, gnps_graphml_path, output_dir, n_components=11):
         self.w_matrix_file = w_matrix_file
@@ -223,7 +210,7 @@ class NMFProcessor:
 
     def process_umap(self, n_neighbors=10, min_dist=1.0, random_state=42, diff_threshold=0.05):
         if umap is None:
-            raise RuntimeError("缺少依赖：umap-learn。请先安装 `pip install umap-learn`")
+            raise RuntimeError("Missing dependency: umap-learn. Please install it first using pip install umap-learn.`")
 
         def _comp_num(name: str) -> int:
             m = re.search(r'(\d+)$', str(name))
@@ -257,7 +244,7 @@ class NMFProcessor:
         self.W_df["UMAP_1"] = embedding[:, 0]
         self.W_df["UMAP_2"] = embedding[:, 1]
 
-        # metadata（可选）
+        # metadata
         if self.metadata_file and os.path.exists(self.metadata_file):
             meta = pd.read_csv(self.metadata_file)
             if "row ID" in meta.columns:
@@ -273,17 +260,17 @@ class NMFProcessor:
             self.W_df["m/z"] = np.nan
             self.W_df["Retention Time"] = np.nan
 
-        # 颜色映射
+        
         all_components = comp_cols
         self.color_map = {comp: self.custom_palette[i % len(self.custom_palette)]
                           for i, comp in enumerate(all_components)}
         self.W_df["Primary_Component"] = self.W_df["Top_Components"].apply(lambda xs: xs[0] if xs else None)
         self.W_df["Color"] = self.W_df["Primary_Component"].map(self.color_map)
 
-        # GNPS 边
+        # GNPS 
         if self.gnps_graphml_path and os.path.exists(self.gnps_graphml_path):
             if nx is None:
-                raise RuntimeError("缺少依赖：networkx。请先安装 `pip install networkx`")
+                raise RuntimeError("Missing dependency：networkx。Please install it first using `pip install networkx`")
 
             g = nx.read_graphml(self.gnps_graphml_path)
             rows = []
@@ -312,7 +299,7 @@ class NMFProcessor:
 
     def plot_graph(self, highlight_samples=None, display_option="None", cosine_range=None):
         if go is None:
-            raise RuntimeError("缺少依赖：plotly。请先安装 `pip install plotly`")
+            raise RuntimeError("Missing dependency：plotly。Please install it first using `pip install plotly`")
         if highlight_samples is None: highlight_samples = []
         if cosine_range is None: cosine_range = [0.6, 1.0]
 
@@ -327,7 +314,7 @@ class NMFProcessor:
             m = re.search(r'(\d+)$', str(name))
             return int(m.group(1)) if m else 10 ** 9
 
-        # 图层：各成分的点
+        
         all_components = sorted(
             list(self.W_df["Top_Components"].explode().dropna().unique()),
             key=_comp_num
@@ -362,7 +349,7 @@ class NMFProcessor:
             else:
                 text_info = ""
 
-            # multi 节点用第二成分颜色描边
+            
             line_colors, line_widths = [], []
             for idx in dfc.index:
                 row = self.W_df.loc[idx]
@@ -387,7 +374,7 @@ class NMFProcessor:
                 name=str(comp)
             ))
 
-        # 高亮样本
+        
         if highlight_samples:
             ids = [_normalize_id(x) for x in highlight_samples if x in self.W_df.index]
             if ids:
@@ -413,7 +400,7 @@ class NMFProcessor:
                     showlegend=False
                 ))
 
-        # GNPS 边
+        
         cmin, cmax = cosine_range
         if not self.edges_df.empty:
             fedges = self.edges_df[
@@ -447,9 +434,6 @@ class NMFProcessor:
         return fig
 
 
-# -------------------------------------------------------------
-# Dash 子应用（/umap_visualization/），并提供 /umap 的别名
-# -------------------------------------------------------------
 if Dash is not None:
     dash_app = Dash(
         __name__,
@@ -459,7 +443,7 @@ if Dash is not None:
     )
 
     dash_app.layout = html.Div([
-        html.H3("交互式 UMAP 可视化", className="text-center mt-3"),
+        html.H3("Interactive UMAP Visualization", className="text-center mt-3")),
         dcc.Loading(
             id="loading",
             children=[dcc.Graph(id="umap-graph", style={"width": "100%", "height": "650px"})],
@@ -491,7 +475,7 @@ if Dash is not None:
     def update_umap(node_id, pepmass, display_option, cosine_range):
         proc = GLOBAL_VIS.get("processor")
         if proc is None:
-            return go.Figure(), "请先通过 /process_nmf_processor 或 /nmf/process 初始化可视化数据。"
+            return go.Figure(), "Please initialize visualization data first via /process_nmf_processor or /nmf/process."
         try:
             highlights = []
             if node_id and str(node_id).strip():
@@ -508,7 +492,7 @@ if Dash is not None:
             fig = proc.plot_graph(highlight_samples=highlights, display_option=display_option, cosine_range=cosine_range)
             return fig, ""
         except Exception as e:
-            return go.Figure(), f"绘图失败：{e}"
+            return go.Figure(), f"error：{e}"
 
     @app.route("/umap")
     def umap_alias():
@@ -518,12 +502,10 @@ else:
     @app.route("/umap")
     @app.route("/umap_visualization/")
     def umap_unavailable():
-        return "UMAP 可视化不可用：缺少 dash/plotly 依赖。请安装：pip install dash plotly", 501
+        return "UMAP visualization is unavailable: missing dependencies dash/plotly. Please install them first using:pip install dash plotly", 501
 
 
-# -------------------------------------------------------------
-# 视图页（渲染你的模板）
-# -------------------------------------------------------------
+
 @app.route("/")
 def index():
     try:
@@ -538,7 +520,7 @@ def process_mass_spectrometry():
         csv = request.files.get("csv_file")
 
         if not mgf or not csv:
-            return jsonify({"error": "请同时上传 MGF 与 CSV 文件"}), 400
+            return jsonify({"error": "Please upload both the MGF file and the CSV file at the same time"}), 400
 
         up = ensure_dir(app.config["UPLOAD_FOLDER"])
         out = ensure_dir(app.config["OUTPUT_FOLDER"])
@@ -598,14 +580,14 @@ def mass_spectrometry_page():
     try:
         return render_template("mass_spectrometry.html")
     except TemplateNotFound:
-        return "<h3>质谱数据预处理页面（模板缺失）</h3>"
+        return "<h3>Mass spectrometry data preprocessing page (template missing).</h3>"
 
 @app.route("/matrix_builder")
 def matrix_builder_page():
     try:
         return render_template("matrix_builder.html")
     except TemplateNotFound:
-        return "<h3>数据矩阵构建页面（模板缺失）</h3>"
+        return "<h3>Data matrix construction page (template missing).</h3>"
 
 @app.route("/nmf")
 def nmf_page():
@@ -613,10 +595,10 @@ def nmf_page():
         return render_template("nmf.html")
     except TemplateNotFound:
         html_fallback = """
-        <html><head><meta charset="utf-8"><title>NMF 控制台</title></head>
+        <html><head><meta charset="utf-8"><title>NMF Console</title></head>
         <body style="font-family: sans-serif; max-width: 900px; margin: 40px auto;">
-          <h2>NMF 控制台（占位页）</h2>
-          <p>建议创建 <code>templates/nmf.html</code> 自定义你的界面。</p>
+          <h2>NMF Console (Placeholder)）</h2>
+          <p>Please create <code>templates/nmf.html</code> to customize the interface.</p>
         </body></html>
         """
         return html_fallback
@@ -627,22 +609,19 @@ def contact():
     return render_template("contact.html")
 
 
-# -------------------------------------------------------------
-# A. 频率/谷点识别
-# -------------------------------------------------------------
 @app.route("/freq_valley_analysis", methods=["POST"])
 def freq_valley_analysis():
     try:
         if "intensity_matrix_file" not in request.files:
-            return jsonify({"error": "请上传 Step⑥ 强度矩阵 CSV（字段名 intensity_matrix_file）"}), 400
+            return jsonify({"error": "Please upload the Step 6 intensity matrix CSV file (field name: intensity_matrix_file)., 400
         f = request.files["intensity_matrix_file"]
         if not f.filename:
-            return jsonify({"error": "CSV 文件不能为空"}), 400
+            return jsonify({"error": "The CSV file cannot be empty."}), 400
 
-        print("[DEBUG] 收到参数：", request.form.to_dict())
-        print("[DEBUG] 上传文件：", request.files)
+        print("[DEBUG] Received parameter：", request.form.to_dict())
+        print("[DEBUG] upload file：", request.files)
 
-        # 参数
+        
         bin_size_da = _safe_float(request.form.get("bin_size_da", 20), 20)
         top_quantile = _safe_float(request.form.get("bin20_quantile", 0.999), 0.999)
         spline_s = _safe_float(request.form.get("spline_s", 0.05), 0.05)
@@ -653,20 +632,20 @@ def freq_valley_analysis():
         step6_csv = os.path.join(upload_dir, _stamp("uploaded_step6_matrix", ".csv"))
         f.save(step6_csv)
 
-        # ---------- 自动识别输入 ----------
+       
         mode, obj = read_intensity_or_frequency(step6_csv)
-        print(f"[DEBUG] 识别类型: {mode}, 维度: {obj.shape}")
+        print(f"[DEBUG] Recognized type: {mode}, dimensions: {obj.shape}")
 
-        # 输出文件（时间戳，避免被覆盖）
+        
         freq_out = os.path.join(out_dir, _stamp("step6_transformation_frag_frequency_corrected", ".csv"))
         freq_kept_out = os.path.join(out_dir, _stamp("step6_transformation_frag_frequency_filtered", ".csv"))
         valleys_out = os.path.join(out_dir, _stamp("step6_transformation_mz_valleys", ".csv"))
         plot_png = os.path.join(out_dir, _stamp("frag_frequency_valleys_plot", ".png"))
 
-        # Step 1: 频率表
+        # Step 1
         if mode == "frequency":
             frequency_df = obj.copy()
-            # 保底：缺了 Frequency_Count 就用 Rate*样本数估（未知样本数则留空）
+            
             if "Frequency_Count" not in frequency_df.columns:
                 frequency_df["Frequency_Count"] = np.nan
             frequency_df = frequency_df[["mz", "Frequency_Count", "Frequency_Rate"]]
@@ -679,14 +658,14 @@ def freq_valley_analysis():
                 "Frequency_Count": counts.values,
                 "Frequency_Rate": rates.values
             })
-        # 清洗 + 排序
+      
         frequency_df = frequency_df.dropna(subset=["mz"]).copy()
         frequency_df["mz"] = pd.to_numeric(frequency_df["mz"], errors="coerce")
         frequency_df["Frequency_Rate"] = pd.to_numeric(frequency_df["Frequency_Rate"], errors="coerce")
         frequency_df = frequency_df.dropna(subset=["mz", "Frequency_Rate"]).sort_values("mz")
         frequency_df.to_csv(freq_out, index=False)
 
-        # Step 2: 分箱 + 分位选择
+        # Step 2
         frequency_df["mz_bin"] = (frequency_df["mz"] // bin_size_da).astype(int)
         kept_list = []
         for _, bdf in frequency_df.groupby("mz_bin"):
@@ -697,7 +676,7 @@ def freq_valley_analysis():
         kept_df = pd.concat(kept_list).sort_values("mz") if kept_list else pd.DataFrame(columns=frequency_df.columns)
         kept_df.to_csv(freq_kept_out, index=False)
 
-        # Step 3: 样条 + 谷点（去重、保序）
+        # Step 3
         valley_mz_list = []
         if kept_df.empty:
             valleys = pd.DataFrame(columns=["mz", "Frequency_Rate"])
@@ -707,9 +686,9 @@ def freq_valley_analysis():
             plt.tight_layout(); plt.savefig(plot_png, dpi=300); plt.close()
         else:
             xy = kept_df[["mz", "Frequency_Rate"]].dropna().sort_values("mz")
-            # 同一 m/z 去重聚合（中位数），避免样条报错
+        
             xy = xy.groupby("mz", as_index=False)["Frequency_Rate"].median().sort_values("mz")
-            print(f"[DEBUG] 保留点数（唯一 m/z）: {len(xy)}")
+            print(f"[DEBUG] Retained points (unique m/z): {len(xy)}")
 
             if len(xy) < 4:
                 valleys = pd.DataFrame(columns=["mz", "Frequency_Rate"])
@@ -740,7 +719,7 @@ def freq_valley_analysis():
                     plt.legend(); plt.tight_layout()
                     plt.savefig(plot_png, dpi=300); plt.close()
                 except Exception as ee:
-                    print("[WARN] 样条拟合失败，退化为仅保存散点：", ee)
+                    print("[WARN] Spline fitting failed, falling back to saving only scatter points: ", ee)
                     valleys = pd.DataFrame(columns=["mz", "Frequency_Rate"])
                     valleys.to_csv(valleys_out, index=False)
                     plt.figure(figsize=(10, 6))
@@ -761,20 +740,17 @@ def freq_valley_analysis():
         }})
     except Exception as e:
         print("[ERROR] /freq_valley_analysis:", traceback.format_exc())
-        return jsonify({"error": f"频率/谷点识别失败：{e}"}), 500
+        return jsonify({"error": f"Frequency/valley detection failed: {e}"}), 500
 
 
-# -------------------------------------------------------------
-# B. 固定阈值分段筛选
-# -------------------------------------------------------------
 @app.route("/segmented_frequency_filter", methods=["POST"])
 def segmented_frequency_filter():
     try:
         if "intensity_matrix_file" not in request.files:
-            return jsonify({"error": "请上传 Step⑥ 强度矩阵 CSV（字段名 intensity_matrix_file）"}), 400
+            return jsonify({"error": "Please upload the Step 6 intensity matrix CSV file (field name: intensity_matrix_file)."}), 400
         f = request.files["intensity_matrix_file"]
         if not f.filename:
-            return jsonify({"error": "CSV 文件不能为空"}), 400
+            return jsonify({"error": "The CSV file cannot be empty."}), 400
 
         mz_split_threshold = _safe_float(request.form.get("mz_split_threshold", 300), 300)
         high_freq_rate = _safe_float(request.form.get("high_freq_rate", 0.01), 0.01)
@@ -812,8 +788,8 @@ def segmented_frequency_filter():
         ]["mz"].tolist()
 
         if mode == "frequency":
-            # 无法返回强度矩阵；写出说明文件避免 404
-            pd.DataFrame({"note": ["上传的是频率表，未提供强度矩阵，无法导出筛选后的强度矩阵。"],
+         
+            pd.DataFrame({"note": ["The uploaded file is a frequency table, not an intensity matrix. The intensity matrix was not provided, so the filtered intensity matrix cannot be exported."],
                           "kept_mz_count": [len(sel)]}).to_csv(final_out, index=False)
         else:
             kept = data.loc[:, data.columns.isin(sel)].sort_index(axis=1)
@@ -825,39 +801,37 @@ def segmented_frequency_filter():
         }})
     except Exception as e:
         print("[ERROR] /segmented_frequency_filter:", traceback.format_exc())
-        return jsonify({"error": f"分段筛选失败：{e}"}), 500
+        return jsonify({"error": f"Segmented filtering failed: {e}"}), 500
 
 
-# -------------------------------------------------------------
-# C. 数据矩阵构建（MGF→Step①–⑥）
-# -------------------------------------------------------------
+
 @app.route("/process_matrix_builder", methods=["POST"])
 def process_matrix_builder():
     try:
-        # 1) 基本校验
+        
         if "mgf_file" not in request.files:
-            return jsonify({"error": "请上传 MGF 文件（字段名 mgf_file）"}), 400
+            return jsonify({"error": "Please upload the MGF file (field name: mgf_file)"}), 400
         mgf = request.files["mgf_file"]
         if not mgf.filename:
-            return jsonify({"error": "MGF 文件不能为空"}), 400
+            return jsonify({"error": "The MGF file cannot be empty."}), 400
 
-        # 2) 读取参数（与 processor 一致；其余可选阈值需要时同理取出后传入）
+    
         bin_size = _safe_float(request.form.get("bin_size", 0.01), 0.01)
         tolerance = _safe_float(request.form.get("tolerance", 0.02), 0.02)
 
-        # 3) 保存上传 & 准备输出目录
+      
         up = ensure_dir(app.config["UPLOAD_FOLDER"])
         out = ensure_dir(app.config["OUTPUT_FOLDER"])
         mgf_path = os.path.join(up, mgf.filename)
         mgf.save(mgf_path)
 
-        # 4) 调用真正的 Step①–⑦ 流程（返回绝对路径字典）
+        
         results = mb_process(
             mgf_path=mgf_path,
             output_dir=out,
             bin_size=bin_size,
             tolerance=tolerance,
-            #如需自定义其它阈值，可开启以下参数并从 form 读取：
+            
             mz_split_threshold=_safe_float(request.form.get("mz_split_threshold", 300), 300),
             high_freq_rate=_safe_float(request.form.get("high_freq_rate", 0.01), 0.01),
             low_freq_rate=_safe_float(request.form.get("low_freq_rate", 0.1), 0.1),
@@ -865,7 +839,7 @@ def process_matrix_builder():
             spline_s=_safe_float(request.form.get("spline_s", 0.05), 0.05),
         )
 
-        # 5) 将绝对路径映射为 *_filename（供前端 renderFiles 使用）+ *_url（可直接点击）
+        
         payload = {}
         for key, abs_path in results.items():
             fname = os.path.basename(abs_path)
@@ -879,18 +853,16 @@ def process_matrix_builder():
 
 
 
-# -------------------------------------------------------------
-# D. NMF 评估
-# -------------------------------------------------------------
+
 @app.route("/process_nmf_evaluate", methods=["POST"])
 @app.route("/nmf/evaluate", methods=["POST"])
 def route_nmf_evaluate():
     try:
         if "matrix_file" not in request.files:
-            return jsonify({"error": "请上传数据矩阵文件（字段名 matrix_file）"}), 400
+            return jsonify({"error": "Please upload the data matrix file (field name: matrix_file)."}), 400
         matrix_file = request.files["matrix_file"]
         if not matrix_file.filename:
-            return jsonify({"error": "矩阵文件不能为空"}), 400
+            return jsonify({"error": "The matrix file cannot be empty."}), 400
 
         min_components = int(request.form.get("min_components", 2))
         max_components = int(request.form.get("max_components", 20))
@@ -914,18 +886,16 @@ def route_nmf_evaluate():
         return jsonify({"error": str(e)}), 500
 
 
-# -------------------------------------------------------------
-# E. CNMF 分解
-# -------------------------------------------------------------
+
 @app.route("/process_nmf_decomposition", methods=["POST"])
 @app.route("/nmf/decompose", methods=["POST"])
 def route_nmf_decomposition():
     try:
         if "matrix_file" not in request.files:
-            return jsonify({"error": "请上传原始矩阵文件（字段名 matrix_file）"}), 400
+            return jsonify({"error": "Please upload the original matrix file (field name: matrix_file)."}), 400
         matrix_file = request.files["matrix_file"]
         if not matrix_file.filename:
-            return jsonify({"error": "矩阵文件不能为空"}), 400
+            return jsonify({"error": "The matrix file cannot be empty."}), 400
 
         n_components = int(request.form.get("n_components", 11))
 
@@ -934,7 +904,7 @@ def route_nmf_decomposition():
         matrix_path = os.path.join(up, matrix_file.filename)
         matrix_file.save(matrix_path)
 
-        # 读取矩阵
+        
         mat_df = pd.read_csv(matrix_path, index_col=0)
         X = mat_df.values
         np.random.seed(42)
@@ -962,7 +932,7 @@ def route_nmf_decomposition():
         top_df = pd.DataFrame(tops, columns=["Component", "Top_m/z"])
         top_df.to_csv(os.path.join(out, f"top_features_per_component-{n_components}.csv"), index=False)
 
-        # 层次聚类 + 删除低贡献
+        
         Z = linkage(W_df, method="ward", metric="euclidean")
         order = leaves_list(Z)
         W_sorted = W_df.iloc[order, :]
@@ -976,11 +946,11 @@ def route_nmf_decomposition():
         ]
         color_map = {c: palette[i % len(palette)] for i, c in enumerate(comp_names)}
 
-        # H 折线
+        
         plt.figure(figsize=(12, 6), dpi=300)
         for c in comp_names:
             plt.plot(H_df.columns, H_df.loc[c, :], label=c, linewidth=1.2, alpha=0.8, color=color_map[c])
-        plt.xlabel("m/z（原始顺序）"); plt.ylabel("Component Weight"); plt.title("CNMF 成分与 m/z 关系")
+        plt.xlabel("m/z(original order)"); plt.ylabel("Component Weight"); plt.title("Relationship between CNMF Components and m/z")
         xtick_int = max(len(H_df.columns) // 15, 1)
         plt.xticks(range(0, len(H_df.columns), xtick_int), H_df.columns[::xtick_int], rotation=45, fontsize=8)
         plt.legend(title="Component", bbox_to_anchor=(1.02, 1), loc="upper left", fontsize=8)
@@ -988,12 +958,12 @@ def route_nmf_decomposition():
         h_png = os.path.join(out, f"CNMF_H_Matrix_Visualization_n{n_components}.png")
         plt.savefig(h_png, dpi=300, bbox_inches="tight"); plt.close()
 
-        # W 堆叠条形
+        
         plt.figure(figsize=(14, 6), dpi=300)
         W_norm = W_filtered.div(W_filtered.sum(axis=1), axis=0)
         ax = W_norm.plot(kind="bar", stacked=True, width=0.8,
                          color=[color_map[c] for c in W_df.columns], figsize=(14, 6))
-        ax.set_xlabel("样本（已聚类）"); ax.set_ylabel("成分贡献比例"); ax.set_title("样本与成分的关系（聚类后）")
+        ax.set_xlabel("Samples (Clustered)"); ax.set_ylabel("Component Contribution Ratio"); ax.set_title("Relationship Between Samples and Components (After Clustering)")
         xtick_int2 = max(len(W_norm) // 20, 1)
         ax.set_xticks(range(0, len(W_norm), xtick_int2))
         ax.set_xticklabels(W_norm.index[::xtick_int2], rotation=45, fontsize=8)
@@ -1013,18 +983,15 @@ def route_nmf_decomposition():
         return jsonify({"error": str(e)}), 500
 
 
-# -------------------------------------------------------------
-# F. UMAP 可视化预处理（加载 W、元数据、GNPS）—— 路由 + 别名
-# -------------------------------------------------------------
 @app.route("/process_nmf_processor", methods=["POST"])
 @app.route("/nmf/process", methods=["POST"])
 def route_nmf_processor():
     try:
         if "w_matrix_file" not in request.files:
-            return jsonify({"error": "请上传 W 矩阵 CSV（字段名 w_matrix_file）"}), 400
+            return jsonify({"error": "Please upload the W matrix CSV file (field name: w_matrix_file)."}), 400
         wfile = request.files["w_matrix_file"]
         if not wfile.filename:
-            return jsonify({"error": "W 矩阵文件不能为空"}), 400
+            return jsonify({"error": "The W matrix file cannot be empty."}), 400
 
         metadata_path = None
         if "metadata_file" in request.files and request.files["metadata_file"].filename:
@@ -1048,8 +1015,7 @@ def route_nmf_processor():
                             gnps_graphml_path=gnps_path, output_dir=out, n_components=n_components)
         proc.process_umap(n_neighbors=10, min_dist=1.0, random_state=42)
 
-        GLOBAL_VIS["processor"] = proc  # 给 Dash 用
-
+        GLOBAL_VIS["processor"] = proc  
         return jsonify({"result": {
             "visualization_url": "/umap_visualization/",
             "nodes_info": f"all_nodes_info-{n_components}.csv",
@@ -1059,18 +1025,15 @@ def route_nmf_processor():
         return jsonify({"error": str(e)}), 500
 
 
-# -------------------------------------------------------------
-# G. UMAP 可视化（可调 n_neighbors、min_dist）—— 路由 + 别名
-# -------------------------------------------------------------
 @app.route("/process_nmf_visualization", methods=["POST"])
 @app.route("/nmf/visualize", methods=["POST"])
 def route_nmf_visualization():
     try:
         if "w_matrix_file" not in request.files:
-            return jsonify({"error": "请上传 W 矩阵 CSV（字段名 w_matrix_file）"}), 400
+            return jsonify({"error": "Please upload the W matrix CSV file (field name: w_matrix_file)."}), 400
         wfile = request.files["w_matrix_file"]
         if not wfile.filename:
-            return jsonify({"error": "W 矩阵文件不能为空"}), 400
+            return jsonify({"error": "The W matrix file cannot be empty."}), 400
 
         metadata_path = None
         if "metadata_file" in request.files and request.files["metadata_file"].filename:
@@ -1109,15 +1072,13 @@ def route_nmf_visualization():
         return jsonify({"error": str(e)}), 500
 
 
-# -------------------------------------------------------------
-# 下载
-# -------------------------------------------------------------
+
 @app.route("/download/<path:filename>")
 def download_file(filename):
     out = ensure_dir(app.config["OUTPUT_FOLDER"])
     file_path = os.path.join(out, filename)
     if not os.path.exists(file_path):
-        return jsonify({"error": "文件不存在"}), 404
+        return jsonify({"error": "File not found"}), 404
     return send_from_directory(out, filename, as_attachment=True)
 
 
@@ -1125,7 +1086,7 @@ def download_file(filename):
 # Main
 # -------------------------------------------------------------
 if __name__ == "__main__":
-    # Windows 中文字体/负号（可选）
+   
     plt.rcParams['font.sans-serif'] = ['SimHei']
     plt.rcParams['axes.unicode_minus'] = False
 
