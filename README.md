@@ -24,8 +24,11 @@ The complete datasets supporting this study, including raw MS/MS files, processe
 SLECS Explorer/
 ├── README.md       
 ├── requirements.txt
-├── docs/         
-└── demo/            
+├── docs/
+├── input/
+├── scripts/      
+└── demo/
+        
 ``` 
 
 ## DATA
