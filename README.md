@@ -4,7 +4,7 @@
 ![描述文字](images/demo.png)
 
 
-SLECS Explorer (Submission Version)
+SLECS Explorer
 ===================
 
 Description
