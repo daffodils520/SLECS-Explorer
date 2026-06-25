@@ -38,25 +38,25 @@
 
     /* ✅ Upload widget */
     .input-group > .form-control[readonly] { background-color: #fff; }
-    /* 控制下拉菜单整体 */
+    
 .dropdown-menu {
-  min-width: 220px;       /* 保证有足够宽度，不会被文字撑破 */
-  border-radius: 6px;     /* 圆角更美观 */
-  overflow: hidden;       /* 避免 hover 颜色超出边框 */
+  min-width: 220px;     
+  border-radius: 6px;   
+  overflow: hidden;     
 }
 
-/* 控制下拉项 */
+
 .dropdown-menu .dropdown-item {
   font-size: 15px;
   font-weight: bold;
   font-family: "Microsoft YaHei", Arial, sans-serif;
   color: #1a3d7c;
-  white-space: nowrap;    /* 避免换行导致错位 */
+  white-space: nowrap; 
 }
 
-/* hover 样式（背景色不会溢出） */
+
 .dropdown-menu .dropdown-item:hover {
-  background-color: #e6f0ff;  /* 自定义 hover 背景色 */
+  background-color: #e6f0ff;
   color: #0d2a57;
 }
 
@@ -64,7 +64,7 @@
 </head>
 <body>
 
-  <!-- ✅ 顶部导航栏 -->
+
   <nav class="navbar navbar-expand-lg" style="background-color:#2b78d4;">
     <img src="{{ url_for('static', filename='images/logo.png') }}" alt="SLECS logo">
     <span class="brand">SLECS</span>
@@ -88,7 +88,7 @@
     </div>
   </nav>
 
-  <!-- ✅ 页面主体 -->
+
   <div class="container mt-4">
     <h2 class="mb-4 text-center" style="color:#1a3d7c;">NMF Decomposition & Visualization</h2>
 
@@ -132,7 +132,7 @@
       </div>
     </div>
 
-    <!-- Ⅱ. Decomposition -->
+
     <div class="card mb-4">
       <div class="card-header"><h5 class="mb-0">NMF Decomposition: Generate matrix W and H</h5></div>
       <div class="card-body">
