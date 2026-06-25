@@ -36,25 +36,25 @@
     .result-img{width:100%;height:auto;border:1px solid #dee2e6;border-radius:.5rem;}
     .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,"Liberation Mono","Courier New",monospace;background:#f8f9fa;border:1px solid #e9ecef;border-bottom-width:2px;border-radius:.25rem;padding:.1rem .35rem;}
     .input-group > .form-control[readonly] { background-color: #fff; }
-    /* 控制下拉菜单整体 */
+    
 .dropdown-menu {
-  min-width: 220px;       /* 保证有足够宽度，不会被文字撑破 */
-  border-radius: 6px;     /* 圆角更美观 */
-  overflow: hidden;       /* 避免 hover 颜色超出边框 */
+  min-width: 220px;       
+  border-radius: 6px;     
+  overflow: hidden;      
 }
 
-/* 控制下拉项 */
+
 .dropdown-menu .dropdown-item {
   font-size: 15px;
   font-weight: bold;
   font-family: "Microsoft YaHei", Arial, sans-serif;
   color: #1a3d7c;
-  white-space: nowrap;    /* 避免换行导致错位 */
+  white-space: nowrap;   
 }
 
-/* hover 样式（背景色不会溢出） */
+
 .dropdown-menu .dropdown-item:hover {
-  background-color: #e6f0ff;  /* 自定义 hover 背景色 */
+  background-color: #e6f0ff;  
   color: #0d2a57;
 }
 
@@ -62,7 +62,7 @@
 </head>
 <body>
 
-  <!-- 顶部导航栏 -->
+  
   <nav class="navbar navbar-expand-lg" style="background-color:#2b78d4;">
     <img src="{{ url_for('static', filename='images/logo.png') }}" alt="SLECS logo">
     <span class="brand">SLECS</span>
@@ -86,16 +86,16 @@
     </div>
   </nav>
 
-  <!-- 页面主体 -->
+
   <div class="container mt-4">
     <h2 class="mb-4 text-center" style="color:#1a3d7c;">Matrix Construction & Optimization</h2>
 
-    <!-- 主表单：MGF → Step①–⑥ -->
+  
     <div class="card mb-4">
       <div class="card-header"><h5 class="mb-0">Matrix Construction</h5></div>
       <div class="card-body">
         <form id="matrixBuilderForm" enctype="multipart/form-data">
-          <!-- 数据准备 -->
+   
           <div class="sub-card">
             <div class="sub-card-header"><h6 class="mb-0">Data Preparation (MGF)</h6></div>
             <div class="sub-card-body">
@@ -107,7 +107,7 @@
             </div>
           </div>
 
-          <!-- 分箱 -->
+
           <div class="sub-card">
             <div class="sub-card-header"><h6 class="mb-0">m/z Binning</h6></div>
             <div class="sub-card-body">
@@ -120,7 +120,7 @@
             </div>
           </div>
 
-          <!-- 碎片筛选 -->
+ 
           <div class="sub-card">
             <div class="sub-card-header"><h6 class="mb-0">Rule-based Fragment Filtering</h6></div>
             <div class="sub-card-body">
@@ -142,7 +142,7 @@
       </div>
     </div>
 
-    <!-- 功能①：频率+谷点 -->
+
     <div class="card mb-4">
       <div class="card-header"><h5 class="mb-0">Frequency-based Adaptive Filtering</h5></div>
       <div class="card-body">
@@ -180,7 +180,7 @@
       </div>
     </div>
 
-    <!-- 功能②：分段筛选 -->
+
     <div class="card mb-5">
       <div class="card-header"><h5 class="mb-0">Partition Filtering (by Frequency & Threshold)</h5></div>
       <div class="card-body">
@@ -212,7 +212,7 @@
   </div>
 
 <script>
-  // —— 工具：把 *_filename 渲染成下载列表 + PNG 预览 ——
+ 
   function renderFiles($container, result){
     const files = result || {};
     let listHtml = '', imgHtml = '';
@@ -220,7 +220,7 @@
     Object.keys(files).forEach(key=>{
       const name = files[key];
       if(typeof name !== 'string') return;
-      if(!/_filename$/i.test(key)) return;  // 只渲染 *_filename
+      if(!/_filename$/i.test(key)) return;  
 
       if(/\.(png|jpg|jpeg|gif)$/i.test(name)){
         imgHtml += `
@@ -242,7 +242,7 @@
     `);
   }
 
-  // —— 主表单：/process_matrix_builder ——
+
   $('#matrixBuilderForm').on('submit', function(e){
     e.preventDefault();
     const formData = new FormData(this);
@@ -261,7 +261,7 @@
     });
   });
 
-  // —— 功能①：/freq_valley_analysis ——
+
   $('#freqValleyForm').on('submit', function(e){
     e.preventDefault();
     const f=document.getElementById('sharedCsvFile').files[0];
@@ -277,9 +277,9 @@
       url:'/freq_valley_analysis', type:'POST', data:fd, processData:false, contentType:false, dataType:'json',
       success: resp=>{
         if(resp && resp.error){ $('#fv_result').html(`<div class="alert alert-danger">${resp.error}</div>`); return; }
-        // 渲染下载与图
+
         renderFiles($('#fv_result'), resp.result);
-        // 在结果顶部显示谷点列表
+  
         if(resp.result && Array.isArray(resp.result.valley_mz_list)){
           const formatted = resp.result.valley_mz_list.map(v => Number(v).toFixed(4));
           $('#fv_result').prepend(`
@@ -297,7 +297,7 @@
     });
   });
 
-  // —— 功能②：/segmented_frequency_filter ——
+
   $('#segFilterForm').on('submit', function(e){
     e.preventDefault();
     const f=document.getElementById('sharedCsvFile').files[0];
@@ -319,7 +319,7 @@
     });
   });
 
-  // —— 文件名联动（MGF / CSV） ——
+  /
   document.getElementById('mgfFile').addEventListener('change', function(){
     document.getElementById('mgfFileName').value = this.files[0]?.name || 'No file chosen';
   });
