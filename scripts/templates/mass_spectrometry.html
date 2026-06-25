@@ -38,28 +38,28 @@
     }
 .card-header {
   background-color: #86DADE
-;   /* 修改为你想要的颜色 */
+;  
 
 }
 .btn-primary {
-  background-color: #86DADE;   /* 修改成你想要的蓝色 */
+  background-color: #86DADE;   
   border-color: #86DADE;
 }
 .btn-primary:hover {
-  background-color: #1a5bbf;   /* 悬停时颜色 */
+  background-color: #1a5bbf;   
   border-color: #1a5bbf;
 }
 .custom-analysis-btn {
-  background-color: #2b78d4;   /* 深蓝色 */
+  background-color: #2b78d4;  
   border-color: #2b78d4;
   color: white;
   font-weight: bold;
 }
 .sub-card-header h6 {
-  font-size: 18px;  /* 🔑 子卡片标题字号 */
+  font-size: 18px; 
 }
 .custom-analysis-btn:hover {
-  background-color: #1a5bbf;   /* 悬停时更深 */
+  background-color: #1a5bbf;  
   border-color: #1a5bbf;
 }
 
@@ -73,23 +73,23 @@
     .result-list li { margin-bottom: .35rem; }
     /* 控制下拉菜单整体 */
 .dropdown-menu {
-  min-width: 220px;       /* 保证有足够宽度，不会被文字撑破 */
-  border-radius: 6px;     /* 圆角更美观 */
-  overflow: hidden;       /* 避免 hover 颜色超出边框 */
+  min-width: 220px;     
+  border-radius: 6px;     
+  overflow: hidden;       
 }
 
-/* 控制下拉项 */
+
 .dropdown-menu .dropdown-item {
   font-size: 15px;
   font-weight: bold;
   font-family: "Microsoft YaHei", Arial, sans-serif;
   color: #1a3d7c;
-  white-space: nowrap;    /* 避免换行导致错位 */
+  white-space: nowrap;    
 }
 
-/* hover 样式（背景色不会溢出） */
+
 .dropdown-menu .dropdown-item:hover {
-  background-color: #e6f0ff;  /* 自定义 hover 背景色 */
+  background-color: #e6f0ff; 
   color: #0d2a57;
 }
 
@@ -97,7 +97,7 @@
 </head>
 <body>
 
-  <!-- ✅ 顶部导航栏 -->
+  
   <nav class="navbar navbar-expand-lg" style="background-color:#2b78d4;">
     <img src="{{ url_for('static', filename='images/logo.png') }}" alt="SLECS logo">
     <span class="brand">SLECS</span>
@@ -121,17 +121,17 @@
     </div>
   </nav>
 
-  <!-- ✅ 页面主体 -->
+
   <div class="container mt-4">
     <h2 class="mb-4" style="text-align:center; color:#1a3d7c;">Data Preprocessing</h2>
 
     <form id="uploadForm" enctype="multipart/form-data" class="mb-4">
-      <!-- 数据准备 -->
+    
       <div class="card mb-3">
         <div class="card-header">Data Preparation</div>
         <div class="card-body">
           <div class="row g-3">
-            <!-- MGF 上传 -->
+           
             <div class="col-md-6">
               <label for="mgfFile" class="form-label">Upload MGF File</label>
               <div class="input-group">
@@ -141,7 +141,7 @@
               </div>
               <div class="small-muted mt-1">Accepted format: <span class="kbd">.mgf</span></div>
             </div>
-            <!-- CSV 上传 -->
+            
             <div class="col-md-6">
               <label for="csvFile" class="form-label">Upload Quantification CSV File</label>
               <div class="input-group">
@@ -155,7 +155,7 @@
         </div>
       </div>
 
-      <!-- 特征峰筛选 -->
+    
       <div class="card mb-3">
         <div class="card-header">Feature Filtering</div>
         <div class="card-body">
@@ -177,7 +177,7 @@
         </div>
       </div>
 
-      <!-- 中性丢失筛选 -->
+    
       <div class="card mb-3">
         <div class="card-header">Neutral-loss Filtering</div>
         <div class="card-body">
@@ -218,7 +218,7 @@
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-// 显示文件名
+
 document.getElementById('mgfFile').addEventListener('change', function(){
   document.getElementById('mgfFileName').textContent = this.files.length ? this.files[0].name : "No file chosen";
 });
@@ -226,7 +226,7 @@ document.getElementById('csvFile').addEventListener('change', function(){
   document.getElementById('csvFileName').textContent = this.files.length ? this.files[0].name : "No file chosen";
 });
 
-// 表单逻辑
+
 (function(){
   const $form = $('#uploadForm');
   const $btn  = $('#submitBtn');
