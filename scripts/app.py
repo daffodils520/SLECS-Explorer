@@ -442,13 +442,23 @@ if Dash is not None:
         external_stylesheets=[dbc.themes.BOOTSTRAP] if dbc else None,
     )
 
-    dash_app.layout = html.Div([
-        html.H3("Interactive UMAP Visualization", className="text-center mt-3")),
-        dcc.Loading(
-            id="loading",
-            children=[dcc.Graph(id="umap-graph", style={"width": "100%", "height": "650px"})],
-            type="circle",
-        ),
+dash_app.layout = html.Div([
+    html.H3(
+        "Interactive UMAP Visualization",
+        className="text-center mt-3"
+    ),
+
+    dcc.Loading(
+        id="loading",
+        children=[
+            dcc.Graph(
+                id="umap-graph",
+                style={"width": "100%", "height": "650px"}
+            )
+        ],
+        type="circle",
+    ),
+])
         html.Div([
             html.Label("Node ID:"), dcc.Input(id="node-id", type="text", style={"margin": "10px"}),
             html.Label("PEPMASS:"), dcc.Input(id="pepmass", type="text", style={"margin": "10px"}),
