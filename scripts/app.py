@@ -27,10 +27,12 @@ from sklearn.decomposition import NMF
 from scipy.cluster.hierarchy import linkage, leaves_list
 
 
-try:
-    import umap  # umap-learn
-except Exception:
-    umap = None
+def _load_umap():
+    try:
+        import umap  # umap-learn
+        return umap
+    except Exception as exc:
+        raise RuntimeError("Missing dependency: umap-learn. Please install it first using `pip install umap-learn`.") from exc
 
 try:
     import networkx as nx
@@ -209,8 +211,7 @@ class NMFProcessor:
         return self.W_df
 
     def process_umap(self, n_neighbors=10, min_dist=1.0, random_state=42, diff_threshold=0.05):
-        if umap is None:
-            raise RuntimeError("Missing dependency: umap-learn. Please install it first using pip install umap-learn.`")
+        umap_module = _load_umap()
 
         def _comp_num(name: str) -> int:
             m = re.search(r'(\d+)$', str(name))
@@ -238,8 +239,8 @@ class NMFProcessor:
         self.W_df["Node_Type"] = self.W_df.apply(determine_node_type, axis=1)
 
         # UMAP
-        reducer = umap.UMAP(n_neighbors=int(n_neighbors), min_dist=float(min_dist),
-                            metric="euclidean", random_state=int(random_state))
+        reducer = umap_module.UMAP(n_neighbors=int(n_neighbors), min_dist=float(min_dist),
+                                   metric="euclidean", random_state=int(random_state))
         embedding = reducer.fit_transform(self.W_df[numeric_cols])
         self.W_df["UMAP_1"] = embedding[:, 0]
         self.W_df["UMAP_2"] = embedding[:, 1]
@@ -270,7 +271,7 @@ class NMFProcessor:
         # GNPS 
         if self.gnps_graphml_path and os.path.exists(self.gnps_graphml_path):
             if nx is None:
-                raise RuntimeError("Missing dependency：networkx。Please install it first using `pip install networkx`")
+                raise RuntimeError("Missing dependency: networkx. Please install it first using `pip install networkx`")
 
             g = nx.read_graphml(self.gnps_graphml_path)
             rows = []
@@ -299,7 +300,7 @@ class NMFProcessor:
 
     def plot_graph(self, highlight_samples=None, display_option="None", cosine_range=None):
         if go is None:
-            raise RuntimeError("Missing dependency：plotly。Please install it first using `pip install plotly`")
+            raise RuntimeError("Missing dependency: plotly. Please install it first using `pip install plotly`")
         if highlight_samples is None: highlight_samples = []
         if cosine_range is None: cosine_range = [0.6, 1.0]
 
@@ -391,7 +392,7 @@ class NMFProcessor:
                     hoverinfo="text",
                     hovertext=h.apply(
                         lambda r: (
-                            f"🔍 FOUND!<br>Sample ID: {r.name}<br>"
+                            f"馃攳 FOUND!<br>Sample ID: {r.name}<br>"
                             f"Component: {' & '.join(r['Top_Components'][:2]) if r['Node_Type']=='multi' else r['Primary_Component']}<br>"
                             f"m/z: {('%.4f' % r['m/z']) if pd.notna(r['m/z']) else 'N/A'}<br>"
                             f"Retention Time: {('%.2f' % r['Retention Time']) if pd.notna(r['Retention Time']) else 'N/A'}"
@@ -442,55 +443,55 @@ if Dash is not None:
         external_stylesheets=[dbc.themes.BOOTSTRAP] if dbc else None,
     )
 
-dash_app.layout = html.Div([
-    html.H3(
-        "Interactive UMAP Visualization",
-        className="text-center mt-3"
-    ),
-
-    dcc.Loading(
-        id="loading",
-        children=[
-            dcc.Graph(
-                id="umap-graph",
-                style={"width": "100%", "height": "650px"}
-            )
-        ],
-        type="circle",
-    ),
-])
-       html.Div([
-        html.Label("Node ID:"),
-        dcc.Input(id="node-id", type="text", style={"margin": "10px"}),
-
-        html.Label("PEPMASS:"),
-        dcc.Input(id="pepmass", type="text", style={"margin": "10px"}),
-
-        html.Label("Show:"),
-        dcc.Dropdown(
-            id="display-option",
-            options=[{"label": k, "value": k} for k in ["None", "Node ID", "PEPMASS", "Retention Time", "All"]],
-            value="None",
-            style={"width": "220px", "margin": "10px"}
+    dash_app.layout = html.Div([
+        html.H3(
+            "Interactive UMAP Visualization",
+            className="text-center mt-3"
         ),
 
-        html.Label("Cosine Range:"),
-        dcc.RangeSlider(
-            id="cosine-range",
-            min=0.0,
-            max=1.0,
-            step=0.01,
-            value=[0.6, 1.0],
-            marks={0: "0", 0.5: "0.5", 1: "1"},
-            tooltip={"placement": "bottom", "always_visible": True}
-        ),
-    ], style={"padding": "10px"}),
+        html.Div([
+            html.Label("Node ID:"),
+            dcc.Input(id="node-id", type="text", style={"margin": "10px"}),
 
-    html.Div(
-        id="umap-error",
-        style={"color": "red", "textAlign": "center"}
-    )
-])
+            html.Label("PEPMASS:"),
+            dcc.Input(id="pepmass", type="text", style={"margin": "10px"}),
+
+            html.Label("Show:"),
+            dcc.Dropdown(
+                id="display-option",
+                options=[{"label": k, "value": k} for k in ["None", "Node ID", "PEPMASS", "Retention Time", "All"]],
+                value="None",
+                style={"width": "220px", "margin": "10px"}
+            ),
+
+            html.Label("Cosine Range:"),
+            dcc.RangeSlider(
+                id="cosine-range",
+                min=0.0,
+                max=1.0,
+                step=0.01,
+                value=[0.6, 1.0],
+                marks={0: "0", 0.5: "0.5", 1: "1"},
+                tooltip={"placement": "bottom", "always_visible": True}
+            ),
+        ], style={"padding": "10px"}),
+
+        dcc.Loading(
+            id="loading",
+            children=[
+                dcc.Graph(
+                    id="umap-graph",
+                    style={"width": "100%", "height": "650px"}
+                )
+            ],
+            type="circle",
+        ),
+
+        html.Div(
+            id="umap-error",
+            style={"color": "red", "textAlign": "center"}
+        )
+    ])
 
     @dash_app.callback(
         [Output("umap-graph", "figure"), Output("umap-error", "children")],
@@ -517,7 +518,7 @@ dash_app.layout = html.Div([
             fig = proc.plot_graph(highlight_samples=highlights, display_option=display_option, cosine_range=cosine_range)
             return fig, ""
         except Exception as e:
-            return go.Figure(), f"error：{e}"
+            return go.Figure(), f"error: {e}"
 
     @app.route("/umap")
     def umap_alias():
@@ -536,7 +537,7 @@ def index():
     try:
         return render_template("index.html")
     except TemplateNotFound:
-        return "<h3>主页</h3><p>请在 templates/ 放置 index.html。可访问：/matrix_builder、/mass_spectrometry、/umap、/nmf</p>"
+        return "<h3>Home</h3><p>Place index.html in templates/. Available pages: /matrix_builder, /mass_spectrometry, /umap, /nmf.</p>"
 
 @app.route("/process_mass_spectrometry", methods=["POST"])
 def process_mass_spectrometry():
@@ -622,7 +623,7 @@ def nmf_page():
         html_fallback = """
         <html><head><meta charset="utf-8"><title>NMF Console</title></head>
         <body style="font-family: sans-serif; max-width: 900px; margin: 40px auto;">
-          <h2>NMF Console (Placeholder)）</h2>
+          <h2>NMF Console (Placeholder)</h2>
           <p>Please create <code>templates/nmf.html</code> to customize the interface.</p>
         </body></html>
         """
@@ -638,13 +639,13 @@ def contact():
 def freq_valley_analysis():
     try:
         if "intensity_matrix_file" not in request.files:
-            return jsonify({"error": "Please upload the Step 6 intensity matrix CSV file (field name: intensity_matrix_file)., 400
+            return jsonify({"error": "Please upload the Step 6 intensity matrix CSV file (field name: intensity_matrix_file)."}), 400
         f = request.files["intensity_matrix_file"]
         if not f.filename:
             return jsonify({"error": "The CSV file cannot be empty."}), 400
 
-        print("[DEBUG] Received parameter：", request.form.to_dict())
-        print("[DEBUG] upload file：", request.files)
+        print("[DEBUG] Received parameters:", request.form.to_dict())
+        print("[DEBUG] Uploaded files:", request.files)
 
         
         bin_size_da = _safe_float(request.form.get("bin_size_da", 20), 20)
