@@ -71,7 +71,7 @@
     .spinner-gap { gap: .5rem; align-items: center; }
     .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Liberation Mono", "Courier New", monospace; background: #f8f9fa; border: 1px solid #e9ecef; border-bottom-width: 2px; border-radius: .25rem; padding: .1rem .35rem; }
     .result-list li { margin-bottom: .35rem; }
-    /* 控制下拉菜单整体 */
+   
 .dropdown-menu {
   min-width: 220px;     
   border-radius: 6px;     
@@ -100,7 +100,7 @@
   
   <nav class="navbar navbar-expand-lg" style="background-color:#2b78d4;">
     <img src="{{ url_for('static', filename='images/logo.png') }}" alt="SLECS logo">
-    <span class="brand">SLECS</span>
+    <span class="brand">SLECS Explorer</span>
 
     <div class="collapse navbar-collapse">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
@@ -111,7 +111,7 @@
           </a>
           <ul class="dropdown-menu" aria-labelledby="analysisDropdown">
             <li><a class="dropdown-item" href="/mass_spectrometry">Data Preprocessing</a></li>
-            <li><a class="dropdown-item" href="/matrix_builder">Matrix Construction & Optimization</a></li>
+            <li><a class="dropdown-item" href="/matrix_builder">Matrix Construction & Filtering</a></li>
             <li><a class="dropdown-item" href="/nmf">NMF Decomposition & Visualization</a></li>
           </ul>
         </li>
