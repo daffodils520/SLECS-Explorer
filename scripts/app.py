@@ -459,23 +459,38 @@ dash_app.layout = html.Div([
         type="circle",
     ),
 ])
-        html.Div([
-            html.Label("Node ID:"), dcc.Input(id="node-id", type="text", style={"margin": "10px"}),
-            html.Label("PEPMASS:"), dcc.Input(id="pepmass", type="text", style={"margin": "10px"}),
-            html.Label("Show:"),
-            dcc.Dropdown(
-                id="display-option",
-                options=[{"label": k, "value": k} for k in ["None", "Node ID", "PEPMASS", "Retention Time", "All"]],
-                value="None", style={"width": "220px", "margin": "10px"}
-            ),
-            html.Label("Cosine Range:"),
-            dcc.RangeSlider(
-                id="cosine-range", min=0.0, max=1.0, step=0.01, value=[0.6, 1.0],
-                marks={0: "0", 0.5: "0.5", 1: "1"}, tooltip={"placement": "bottom", "always_visible": True}
-            ),
-        ], style={"padding": "10px"}),
-        html.Div(id="umap-error", style={"color": "red", "textAlign": "center"})
-    ])
+       html.Div([
+        html.Label("Node ID:"),
+        dcc.Input(id="node-id", type="text", style={"margin": "10px"}),
+
+        html.Label("PEPMASS:"),
+        dcc.Input(id="pepmass", type="text", style={"margin": "10px"}),
+
+        html.Label("Show:"),
+        dcc.Dropdown(
+            id="display-option",
+            options=[{"label": k, "value": k} for k in ["None", "Node ID", "PEPMASS", "Retention Time", "All"]],
+            value="None",
+            style={"width": "220px", "margin": "10px"}
+        ),
+
+        html.Label("Cosine Range:"),
+        dcc.RangeSlider(
+            id="cosine-range",
+            min=0.0,
+            max=1.0,
+            step=0.01,
+            value=[0.6, 1.0],
+            marks={0: "0", 0.5: "0.5", 1: "1"},
+            tooltip={"placement": "bottom", "always_visible": True}
+        ),
+    ], style={"padding": "10px"}),
+
+    html.Div(
+        id="umap-error",
+        style={"color": "red", "textAlign": "center"}
+    )
+])
 
     @dash_app.callback(
         [Output("umap-graph", "figure"), Output("umap-error", "children")],
