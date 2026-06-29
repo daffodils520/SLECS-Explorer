@@ -248,7 +248,7 @@
 function normalizeFiles(res){
   const files = {};
   Object.keys(res||{}).forEach(k=>{
-    // 只保留 *_filename
+    
     if(k.endsWith('_filename')){
       const base = k.replace(/_filename$/,'');
       files[base] = res[k];
