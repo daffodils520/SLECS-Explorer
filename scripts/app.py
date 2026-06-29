@@ -57,7 +57,13 @@ warnings.filterwarnings("ignore")
 # ---------------------------
 # Flask
 # ---------------------------
-app = Flask(__name__, static_folder="static", template_folder="templates")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+app = Flask(
+    __name__,
+    static_folder=os.path.join(PROJECT_ROOT, "static"),
+    template_folder=os.path.join(SCRIPT_DIR, "templates"),
+)
 app.config.setdefault("UPLOAD_FOLDER", "uploads")
 app.config.setdefault("OUTPUT_FOLDER", "output")
 app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024 * 1024  # 1GB
