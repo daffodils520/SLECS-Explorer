@@ -636,7 +636,9 @@ def nmf_page():
         </body></html>
         """
         return html_fallback
-
+@app.route("/about")
+def about():
+    return render_template("about.html")
 
 @app.route("/contact")
 def contact():
